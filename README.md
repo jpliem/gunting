@@ -59,6 +59,32 @@ Two end-to-end runs (May 2026):
 The fraud-vs-legit gap (90 vs 36) is the point: the system discriminates, it doesn't just
 flag everything.
 
+## Benchmark & evaluation
+
+A reproducible benchmark lives in [`benchmark/`](benchmark/) — built on the **Retraction Watch**
+database (6,362 fraud positives extracted) and **PMC open-access** full text, with a pure-Python
+scorer (AUC, P/R/F1, calibration/ECE, bootstrap CIs) and a lexical **fingerprint baseline**.
+Writeup: [`benchmark/paper/paper.md`](benchmark/paper/paper.md).
+
+Pilot (14 papers — 6 paper-mill retractions vs 8 high-integrity-venue controls):
+
+| Detector | AUC | F1 (≥serious) | F1 (≥likely-fraud) |
+|---|---|---|---|
+| gunting (decomposed + web) | **1.00** | 1.00 | 0.29 |
+| gunting (decomposed, no web) | **1.00** | 1.00 | 0.80 |
+| monolithic LLM + web | **1.00** | 1.00 | 0.80 |
+| vanilla LLM (no rubric) | **1.00** | 0.91 | 0.67 |
+| lexical fingerprint baseline | **0.44** | **0.00** | **0.00** |
+
+Headlines: **reasoning auditing crushes surface fingerprinting** on fluent modern mills
+(AUC 1.00 vs 0.44 — the lexical detector scores 0 on every fluent mill); the integrity
+dimensions (plausibility/methodology/results/inconsistency) separate fraud from legit by ~60
+points; and `gunting` catches **freshly LLM-generated** fabrications (95, 82 / 100) it has never
+seen — including by web-verifying that cited journals don't exist — while clearing an honest
+synthetic control (5/100). The honest caveat: AUC = 1.0 reflects an *easy* negative class and a
+small pilot; the open problem is that **"non-retracted" is not a safe negative label** (paper §5.4).
+The harness scales to the full corpus unchanged.
+
 ## Requirements
 
 - PDF text extractor: **poppler** (`pdftotext`, `pdfinfo`) preferred, or `pip install pdfplumber`.

@@ -1,0 +1,501 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 20mm 18mm 22mm 18mm;
+  @bottom-center { content: counter(page) " / " counter(pages); font-size:8.5pt; color:#888; } }
+* { box-sizing: border-box; }
+body { font-family: "Charter","Georgia","Times New Roman",serif; font-size:9.6pt; line-height:1.46;
+  color:#161616; text-align:justify; hyphens:auto; }
+h1 { font-size:17pt; line-height:1.2; text-align:left; margin:0 0 2pt; font-family:"Helvetica Neue",Arial,sans-serif; }
+h2 { font-size:11.5pt; margin:15pt 0 4pt; border-bottom:1.2pt solid #222; padding-bottom:2pt;
+  font-family:"Helvetica Neue",Arial,sans-serif; }
+h3 { font-size:10pt; margin:10pt 0 3pt; font-family:"Helvetica Neue",Arial,sans-serif; color:#222; }
+p { margin:0 0 6pt; }
+strong { color:#000; }
+em { color:#333; }
+code { font-family:"SF Mono","Menlo",monospace; font-size:8.4pt; background:#f3f3f3; padding:0.5pt 2.5pt; border-radius:2pt; }
+pre { background:#f6f6f6; border:0.5pt solid #ddd; border-radius:3pt; padding:7pt 9pt; font-size:8.2pt;
+  line-height:1.34; overflow:hidden; white-space:pre-wrap; }
+pre code { background:none; padding:0; }
+table { border-collapse:collapse; width:100%; margin:7pt 0 10pt; font-size:8.6pt; }
+th,td { border:0.5pt solid #c4c4c4; padding:3pt 6pt; text-align:left; vertical-align:top; }
+th { background:#ededed; font-family:"Helvetica Neue",Arial,sans-serif; font-weight:600; }
+tr:nth-child(even) td { background:#fafafa; }
+hr { border:none; border-top:0.5pt solid #ccc; margin:12pt 0; }
+blockquote { margin:7pt 0; padding:5pt 11pt; border-left:2.5pt solid #888; background:#f7f7f7;
+  color:#333; font-size:9.2pt; }
+a { color:#1a4d8f; text-decoration:none; }
+h2:first-of-type, h1 { page-break-after:avoid; }
+table, pre, blockquote { page-break-inside:avoid; }
+h2,h3 { page-break-after:avoid; }
+</style></head>
+<body><h1>Reasoning Auditors Beat Fingerprints but Inherit the Negative-Class Problem: A Pilot Benchmark for LLM Paper-Mill Detection</h1>
+<p><strong>Working paper / pilot study — v0.1, June 2026</strong></p>
+<p><em>Artifact: <code>gunting</code>, a 9-dimension multi-agent paper-fraud auditor, with a fully reproducible benchmark harness built on the Retraction Watch database and PubMed Central open-access full text.</em></p>
+<hr />
+<h2>Abstract</h2>
+<p>Paper mills and, increasingly, large language model (LLM) text generators produce
+fluent fraudulent research at a scale that overwhelms peer review. Deployed
+detectors largely rely on <strong>surface fingerprints</strong> (tortured phrases, template
+artifacts, metadata anomalies) or single-model classifiers. We ask whether a
+<strong>decomposed, web-grounded reasoning auditor</strong> improves detection and, critically,
+whether it can be <em>evaluated honestly</em>. We build a reproducible benchmark from the
+Retraction Watch database (reliable fraud <strong>positives</strong>) and PMC open-access full
+text, and run a four-cell ablation — decomposition × web access — plus a lexical
+fingerprint baseline, on a 14-paper balanced pilot (6 paper-mill retractions, 8
+high-integrity-venue controls). Three findings stand out. (1) <strong>Every reasoning
+configuration separates fluent mills from reputable-venue papers perfectly
+(AUC = 1.00), while the fingerprint baseline is worse than chance (AUC = 0.44,
+recall = 0).</strong> (2) The configurations differ not in discrimination but in
+<strong>calibration</strong>: decomposed + weighted-mean aggregation is markedly more
+conservative at the strict "likely-fraud" threshold (recall 0.17 vs 0.67), and web
+grounding does not raise AUC on clean controls but enables catching <strong>fabricated
+citations</strong> in novel fraud. (3) The hardest and most important problem is the
+<strong>negative class</strong>: on same-domain <em>non-retracted</em> papers, even a no-rubric model
+flags 5/7 as suspicious — these are either false positives or <em>undetected mills</em>,
+and "non-retracted" is not a safe negative. We additionally show, against freshly
+<strong>LLM-generated</strong> fabricated papers (the "BadScientist" threat), that the auditor
+scores fabrications 82–95/100 while clearing an honest synthetic control at 5/100.
+We release the harness, dataset builder, scorer, and all run artifacts. <strong>Headline
+numbers (AUC = 1.0) reflect an easy negative class and a small pilot and should not
+be read as deployment performance</strong>; the contribution is the method, the honest
+evaluation protocol, and the negative-class diagnosis.</p>
+<hr />
+<h2>1. Introduction</h2>
+<p>The scholarly record is under attack from two converging sources. <strong>Paper mills</strong>
+sell authorship on fabricated manuscripts at industrial scale — Elsevier alone
+recently exposed 24 bad-actor networks spanning ~1,100 members, and the 2026 World
+Conference on Research Integrity named GenAI-accelerated fraud the field's top
+threat. Simultaneously, <strong>LLM text generation</strong> lets a single actor produce fluent,
+plausible-but-unsound papers; the <em>BadScientist</em> study showed fabricated manuscripts
+achieving acceptance rates up to 82% against automated reviewers.</p>
+<p>Detection has not kept pace. The deployed-detector family — Clear Skies'
+<em>Papermill Alarm</em>, the STM Integrity Hub, Cabanac et al.'s <em>Problematic Paper
+Screener</em> — keys on <strong>surface signals</strong>: tortured phrases ("bosom peril" for breast
+cancer), template leftovers, citation/metadata anomalies. Recent LLM work
+(<em>Pub-Guard-LLM</em>) frames detection as <strong>retraction classification</strong> with a single
+model. Both approaches share a blind spot for fluent fraud and, we argue, a deeper
+<strong>evaluation</strong> problem: they are scored against retraction labels whose <em>negative</em>
+class ("not retracted") is unreliable.</p>
+<p>We study <code>gunting</code>, an auditor that <strong>decomposes</strong> a paper into nine integrity
+dimensions (methodology, results, author, duration, findings, summary, formatting,
+inconsistency, plausibility), audits each with an independent web-enabled agent,
+and synthesizes a 0–100 fraud-risk score with located, evidence-bearing flags. Our
+contributions:</p>
+<ol>
+<li><strong>A reproducible, leakage-controlled benchmark</strong> built from Retraction Watch +
+   PMC OA full text, with a dataset builder, PMC fetcher, retraction-notice
+   sanitizer, pure-Python scorer (AUC, P/R/F1, ECE, bootstrap CIs), and a lexical
+   fingerprint baseline. One command reproduces every number; the same harness scales
+   to the full ~6,300 fraud-positive corpus.</li>
+<li><strong>A clean 2×2 ablation</strong> (decomposition × web) plus baselines, isolating where
+   the auditor's design earns its cost.</li>
+<li><strong>The negative-class diagnosis</strong>: a demonstration that benchmark difficulty is
+   governed almost entirely by how negatives are chosen, and that same-domain
+   non-retracted controls are unsafe.</li>
+<li><strong>An adversarial arm</strong> against freshly LLM-generated fabrications, testing
+   generalization to fraud with no retraction record and no fingerprint.</li>
+</ol>
+<p>We are deliberate about scope: this is a <strong>pilot (n = 14)</strong> with an easy negative
+class. We report what is real and flag what is not.</p>
+<hr />
+<h2>2. Related Work</h2>
+<p><strong>Surface / fingerprint detectors.</strong> The Problematic Paper Screener (Cabanac et al.)
+flags tortured phrases at scale; Clear Skies' Papermill Alarm and the STM Integrity
+Hub combine lexical and metadata/network signals. These are precise on <em>crude</em> mills
+but, as we show, blind to fluent ones.</p>
+<p><strong>LLM detectors.</strong> <em>Pub-Guard-LLM</em> (2025) detects retracted biomedical articles with
+three modes (Vanilla Reasoning, RAG, Multi-Agent Debate) over an 11,192-article
+corpus (24.5% retracted); reported test-set F1 ≈ 70, average F1 ≈ 76.8 (RAG),
+best recall ≈ 88.7 (Debate), beating fine-tuned SciBERT (F1 ≈ 60.9) and few-shot
+LLMs (F1 ≈ 30–48). Our auditor differs in <strong>decomposition</strong> (nine specialist
+dimensions vs one model) and in producing <strong>located, human-actionable flags</strong>, and
+we deliberately separate fraud <strong>reasoning</strong> from retraction <strong>status</strong>.</p>
+<p><strong>Adversarial generation.</strong> <em>BadScientist</em> frames the offense — can a generator fool
+reviewers? We frame the defense and reuse its premise to build an adversarial test set.</p>
+<hr />
+<h2>3. The <code>gunting</code> Auditor</h2>
+<p>Given one paper's text, <code>gunting</code> runs nine <strong>web-enabled specialist agents</strong>, one
+per integrity dimension, each emitting structured flags
+(<code>severity ∈ {CRITICAL, HIGH, MEDIUM, LOW}</code>, <code>claim</code>, <code>issue</code>, <code>evidence</code>,
+<code>location</code>, <code>sources</code>, <code>confidence</code>) and a 0–100 <code>dimension_risk</code>. A synthesizer
+aggregates:</p>
+<blockquote>
+<p><strong>overall = max(dimension_risk)</strong> if any dimension ≥ 80 (a CRITICAL); <strong>else a
+weighted mean</strong> with integrity dimensions (methodology, results, inconsistency,
+plausibility) weighted ×1.5 and the rest ×1.0.</p>
+</blockquote>
+<p>Labels: 0–19 <em>clean</em>, 20–39 <em>minor</em>, 40–69 <em>serious</em>, 70–100 <em>likely fraud</em>. The
+aggregation choice matters for calibration (§5.2).</p>
+<hr />
+<h2>4. Benchmark Construction</h2>
+<p><strong>Positives (reliable).</strong> From the Retraction Watch database (CC0, via Crossref
+Labs; 9,374 records in our snapshot), we keep <code>RetractionNature = Retraction</code>
+records whose <code>Reason</code> contains explicit fraud/mill markers (<em>Paper Mill</em>, <em>Fake/
+Compromised Peer Review</em>, <em>Fabrication</em>, <em>Falsification</em>, <em>Unreliable Data</em>, …),
+yielding <strong>6,362 fraud positives</strong>; 984 carry a PubMed ID, 733 from Hindawi. We draw
+pilot positives from the high-purity <em>Paper Mill / Fake Peer Review</em> subset.</p>
+<p><strong>The negative-class problem.</strong> Retraction Watch certifies <em>positives</em>; it does not
+certify <em>negatives</em>. Our first control set — non-retracted PMC papers from the <strong>same
+domain and era</strong> (2017–2021 oncology miRNA/lncRNA, the genre mills flooded) — proved
+unsafe: a no-rubric model flagged <strong>5 of 7</strong> as suspicious (§5.4). We therefore fix a
+<strong>source-quality rule, independent of any score</strong>: controls must come from
+high-integrity venues (eLife, Nature Communications, Genome Biology, PLoS Biology)
+with mandatory data-availability and rigorous review. This trades realism (the
+negatives become <em>easy</em>) for label safety, and we report both.</p>
+<p><strong>Full text &amp; leakage control.</strong> Text is fetched from the PMC BioC API. Because PMC
+full text for retracted articles can embed a retraction notice — a direct label leak
+— we <strong>sanitize</strong> every text, stripping lines that announce retraction/withdrawal/
+erratum <em>status</em>, and drop any paper whose status cannot be cleanly removed. We also
+instruct every web-enabled agent <strong>never to look up the paper's own retraction
+status</strong> (Retraction Watch / PubPeer) and to judge only from internal evidence +
+factual verification (do authors/journal/citations exist; are values plausible).</p>
+<p><strong>Pilot set.</strong> 14 papers: <strong>6</strong> paper-mill retractions + <strong>8</strong> high-integrity-venue
+controls, domain-adjacent (cancer molecular biology), leak-sanitized.</p>
+<p><strong>Configurations (2×2 + baselines).</strong></p>
+<table>
+<thead>
+<tr>
+<th>Config</th>
+<th>Decomposition</th>
+<th>Web</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gunting_web</code></td>
+<td>9 dimensions</td>
+<td>yes</td>
+<td>full system</td>
+</tr>
+<tr>
+<td><code>gunting_noweb</code></td>
+<td>9 dimensions</td>
+<td>no</td>
+<td>web ablation</td>
+</tr>
+<tr>
+<td><code>mono_web</code></td>
+<td>single holistic</td>
+<td>yes</td>
+<td>decomposition ablation</td>
+</tr>
+<tr>
+<td><code>vanilla</code></td>
+<td>single, no rubric</td>
+<td>no</td>
+<td>LLM floor</td>
+</tr>
+<tr>
+<td><code>fingerprint</code></td>
+<td>—</td>
+<td>—</td>
+<td>lexical/structural detector</td>
+</tr>
+</tbody>
+</table>
+<p>All LLM configs use the same model (Claude Opus 4.x). The fingerprint baseline
+implements a tortured-phrase lexicon (Problematic-Paper-Screener style) plus
+placeholder-citation, template, and citation-density heuristics.</p>
+<hr />
+<h2>5. Results</h2>
+<h3>5.1 Main benchmark (n = 14; 6 positive / 8 negative)</h3>
+<p>Decision thresholds: <strong>T40</strong> (≥ "serious") and <strong>T70</strong> (≥ "likely fraud").
+95% CIs are 1,000-sample bootstrap.</p>
+<table>
+<thead>
+<tr>
+<th>Config</th>
+<th>AUC (CI)</th>
+<th>ECE</th>
+<th>T40 P / R / F1</th>
+<th>T70 P / R / F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>gunting_web</strong></td>
+<td><strong>1.00</strong> (1.00–1.00)</td>
+<td>0.19</td>
+<td>1.00 / 1.00 / <strong>1.00</strong></td>
+<td>1.00 / 0.17 / 0.29</td>
+</tr>
+<tr>
+<td><strong>gunting_noweb</strong></td>
+<td><strong>1.00</strong> (1.00–1.00)</td>
+<td>0.17</td>
+<td>1.00 / 1.00 / <strong>1.00</strong></td>
+<td>1.00 / 0.67 / 0.80</td>
+</tr>
+<tr>
+<td><strong>mono_web</strong></td>
+<td><strong>1.00</strong> (1.00–1.00)</td>
+<td>0.15</td>
+<td>1.00 / 1.00 / <strong>1.00</strong></td>
+<td>1.00 / 0.67 / 0.80</td>
+</tr>
+<tr>
+<td><strong>vanilla</strong></td>
+<td><strong>1.00</strong> (1.00–1.00)</td>
+<td>0.19</td>
+<td>1.00 / 0.83 / 0.91</td>
+<td>1.00 / 0.50 / 0.67</td>
+</tr>
+<tr>
+<td><strong>fingerprint</strong></td>
+<td><strong>0.44</strong> (0.30–0.50)</td>
+<td>0.45</td>
+<td>0.00 / 0.00 / 0.00</td>
+<td>0.00 / 0.00 / 0.00</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reasoning crushes fingerprinting on fluent mills.</strong> Every reasoning config ranks
+all 6 positives above all 8 controls (positives 52–88; controls 3–17). The lexical
+detector scores <strong>0 on all 14</strong> papers (AUC 0.44) — the modern oncology mills carry
+none of the crude tortured-phrase/placeholder signals it depends on. (Sanity check:
+the same detector scores 50 on a <em>crude</em> mill case, PMC9420581, confirming it fires
+when surface signals exist.)</p>
+<h3>5.2 Ablations: discrimination vs calibration</h3>
+<p>On this clean-control set, <strong>decomposition and web access do not change AUC</strong> — all
+four LLM configs achieve 1.00. The differences are in <strong>operating point</strong>:</p>
+<ul>
+<li><strong>At T40 (the practical screening threshold), everything works</strong> (F1 0.91–1.00).</li>
+<li><strong>At T70</strong>, <code>gunting_web</code> collapses to recall 0.17, while <code>gunting_noweb</code> and
+  <code>mono_web</code> hold 0.67. Cause: <code>gunting</code>'s <strong>weighted-mean aggregation dilutes</strong> a
+  paper that has many genuinely-clean dimensions (e.g., <em>duration</em>, <em>author</em>) unless
+  one dimension fires a CRITICAL (≥80). True mills cluster in the <em>serious</em> band
+  (55–69), correctly suspicious but rarely labeled <em>likely fraud</em>.</li>
+<li><strong>Web access</strong> <em>lowers</em> positive scores rather than raising them (e.g., the
+  fabricated-CNN paper PMC9499792: 88 no-web → 59 web), because verification confirms
+  the journal/refs are real and the auditor moderates. Web thus trades sensitivity
+  for <strong>specificity and grounding</strong> — its decisive value appears against fabricated
+  citations (§5.5), not on this corpus's AUC.</li>
+</ul>
+<p><strong>Implication:</strong> the contribution of decomposition is <strong>not</strong> higher AUC on easy
+negatives; it is (a) <strong>explainability</strong> (located, dimension-attributed flags, §5.3)
+and (b) <strong>specificity on hard negatives</strong> — and the default fraud threshold and
+aggregation need recalibration (we suggest threshold 40, or counting dimensions in
+the <em>serious+</em> band, rather than threshold 70).</p>
+<h3>5.3 Which dimensions discriminate, and explainability</h3>
+<p>Mean dimension scores, positives vs controls (<code>gunting_web</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>pos</th>
+<th>neg</th>
+<th>gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>plausibility</td>
+<td>67.2</td>
+<td>6.5</td>
+<td><strong>60.7</strong></td>
+</tr>
+<tr>
+<td>methodology</td>
+<td>64.7</td>
+<td>4.5</td>
+<td><strong>60.2</strong></td>
+</tr>
+<tr>
+<td>results</td>
+<td>67.2</td>
+<td>7.1</td>
+<td><strong>60.0</strong></td>
+</tr>
+<tr>
+<td>inconsistency</td>
+<td>71.5</td>
+<td>13.2</td>
+<td><strong>58.2</strong></td>
+</tr>
+<tr>
+<td>formatting</td>
+<td>65.8</td>
+<td>8.6</td>
+<td>57.2</td>
+</tr>
+<tr>
+<td>findings</td>
+<td>61.2</td>
+<td>5.6</td>
+<td>55.5</td>
+</tr>
+<tr>
+<td>summary</td>
+<td>45.8</td>
+<td>3.9</td>
+<td>42.0</td>
+</tr>
+<tr>
+<td>author</td>
+<td>43.0</td>
+<td>2.8</td>
+<td>40.2</td>
+</tr>
+<tr>
+<td>duration</td>
+<td>23.7</td>
+<td>3.8</td>
+<td>19.9</td>
+</tr>
+</tbody>
+</table>
+<p>The four <strong>integrity dimensions</strong> weighted ×1.5 in the synthesizer are exactly the
+most discriminative (gaps ~58–61), empirically validating the design; <em>duration</em>
+contributes least (text-only auditing cannot see submission timelines).</p>
+<p><strong>Explainability vs ground truth.</strong> Without access to retraction status, <code>gunting</code>'s
+top flags map onto the <em>documented</em> Retraction Watch reasons:</p>
+<table>
+<thead>
+<tr>
+<th>Paper</th>
+<th>RW reasons (ground truth)</th>
+<th>gunting's independent flags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PMC7840786</td>
+<td>Paper Mill; Unreliable Data; Concerns about Data</td>
+<td>backward miR→FOXO mechanism; no quantitative data; duplicated figure caption</td>
+</tr>
+<tr>
+<td>PMC7844839</td>
+<td>Paper Mill; Duplication/Plagiarism of Data</td>
+<td>template mill family; <strong>false ATCC cell-line provenance</strong>; unquantified blots</td>
+</tr>
+<tr>
+<td>PMC6910214</td>
+<td>Paper Mill; Concerns/Plagiarism of Image</td>
+<td>figure-legend mismatches; mechanistically backwards SKP2 claim; impossible "2–3 s" DAB</td>
+</tr>
+<tr>
+<td>PMC7656116</td>
+<td>Paper Mill; Concerns about Data/Image</td>
+<td>cell-line misclassification; cherry-picked TCGA; <strong>non-existent siRNA vendor</strong></td>
+</tr>
+<tr>
+<td>PMC8072314</td>
+<td>Paper Mill; Plagiarism of Data</td>
+<td><strong>phantom "miR-203 inhibitor"</strong> copy-paste; funding/institution mismatch; impossible 500 µM</td>
+</tr>
+<tr>
+<td>PMC9499792</td>
+<td>Paper Mill; Computer-Generated; Referencing</td>
+<td>impossible identical 99.6% metrics; off-topic citation padding; tortured CNN terms</td>
+</tr>
+</tbody>
+</table>
+<p>The flags are <em>located</em> and <em>checkable</em>, and recover the integrity failures behind
+each retraction — the property an editor actually needs.</p>
+<h3>5.4 The negative-class problem (hard negatives)</h3>
+<p>Re-running the floor model (<code>vanilla</code>) on the discarded <strong>same-domain non-retracted</strong>
+control set:</p>
+<ul>
+<li><strong>5 / 7</strong> scored ≥ 40 (serious+); <strong>3 / 7</strong> scored ≥ 70 (likely fraud).</li>
+</ul>
+<p>These papers are <em>not</em> in Retraction Watch, yet a detector flags most of them. Two
+readings are possible and <strong>indistinguishable without ground truth we do not have</strong>:
+they are false positives, <em>or</em> they are undetected mills (entirely plausible in this
+genre and era). Either way, <strong>"non-retracted" is not a valid negative label</strong>, and a
+benchmark's apparent difficulty is set almost entirely by how negatives are chosen.
+This is, we argue, the central obstacle to honest evaluation of mill detectors — and
+a reason published retraction-classification scores should be read cautiously.</p>
+<h3>5.5 Adversarial arm: novel LLM-generated fraud (BadScientist threat)</h3>
+<p>We generated three papers with an LLM — two <strong>fluent fabrications</strong> (an ML intrusion
+detector; a biomedical ceRNA study) and one <strong>honest synthetic control</strong> — and
+audited them <strong>blind</strong> with <code>gunting_web</code>. None has a retraction record or surface
+fingerprint.</p>
+<table>
+<thead>
+<tr>
+<th>Paper</th>
+<th>True</th>
+<th>gunting</th>
+<th>verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ADV1 (fabricated ML)</td>
+<td>fraud</td>
+<td><strong>95</strong></td>
+<td>likely_fraud</td>
+</tr>
+<tr>
+<td>ADV2 (fabricated biomed)</td>
+<td>fraud</td>
+<td><strong>82</strong></td>
+<td>likely_fraud</td>
+</tr>
+<tr>
+<td>ADV_CTRL (honest ML)</td>
+<td>clean</td>
+<td><strong>5</strong></td>
+<td>clean</td>
+</tr>
+</tbody>
+</table>
+<p>For ADV1, the auditor <strong>web-verified that the cited journals do not exist</strong> and
+proved the headline result (frozen-weight transfer across datasets with incompatible
+feature schemas) is <em>physically impossible</em>. For ADV2 it caught mirror-image
+too-clean fold-changes and the paper's own boast of "uniformly small error bars."
+The honest control was cleared after verifying its datasets and citations are real.
+This is the case fingerprints and retraction-lookups cannot address, and where
+<strong>web-grounded reasoning is decisive</strong>.</p>
+<hr />
+<h2>6. Comparison to Pub-Guard-LLM (context, not head-to-head)</h2>
+<p>Pub-Guard-LLM reports test-set F1 ≈ 70 / avg F1 ≈ 76.8, recall ≈ 88.7, on 11,192
+articles at 24.5% prevalence, predicting <strong>retraction</strong>. Our reasoning configs reach
+F1 = 1.00 at T40 — but this is <strong>not comparable</strong>: our pilot is small and balanced,
+our negatives are <em>easy</em> (high-integrity venues), and our target is <strong>fraud reasoning
+with status-lookup forbidden</strong>, not retraction prediction. The honest takeaway is
+<em>not</em> "gunting beats Pub-Guard"; it is that <strong>scores are dominated by negative-class
+choice and prevalence</strong>, and that the field needs shared, label-safe negatives before
+cross-system numbers mean anything.</p>
+<hr />
+<h2>7. Limitations (read before citing any number)</h2>
+<ul>
+<li><strong>Pilot size.</strong> n = 14 (6/8). CIs are wide where they matter (T70 F1 CI for
+  <code>gunting_web</code> is [0.0, 0.67]). The full-corpus run (harness provided) is future work.</li>
+<li><strong>Easy negatives.</strong> High-integrity-venue controls make AUC = 1.0 unsurprising; the
+  honest difficulty lives in §5.4.</li>
+<li><strong>Genre skew.</strong> Positives are 5 oncology mills + 1 CS paper; controls skew
+  biomedical. Generalization across fields is untested.</li>
+<li><strong>Single model, dual role.</strong> The same model family powers <code>gunting</code> <em>and</em> generated
+  the adversarial set — the adversarial result shows Claude can catch Claude-written
+  fraud, not that it generalizes to all generators or that an adversary optimizing
+  against <code>gunting</code> could not evade it.</li>
+<li><strong>Residual leakage risk.</strong> Two web-enabled agents reported incidentally seeing a
+  retraction mention and stated they ignored it per instructions; we cannot fully
+  guarantee no influence. Sanitization + instruction are mitigations, not proofs.</li>
+<li><strong>No image forensics.</strong> Text-only; image duplication (a top RW reason) is inferred
+  indirectly via figure-legend inconsistencies.</li>
+<li><strong>Reproducibility caveat.</strong> Exact scores are model/version dependent; the harness
+  reproduces the <em>protocol</em> and data, not bit-identical LLM outputs.</li>
+</ul>
+<hr />
+<h2>8. Conclusion</h2>
+<p>On fluent modern paper mills, <strong>reasoning-based auditing decisively outperforms
+surface fingerprinting</strong> (AUC 1.00 vs 0.44), and a decomposed, web-grounded auditor
+adds <strong>located, ground-truth-aligned explanations</strong> and <strong>specificity on hard
+negatives</strong> — while needing threshold/aggregation recalibration to label fraud
+rather than merely "serious concern." It also catches <strong>novel LLM-generated
+fabrications</strong> (82–95/100) that have no retraction record or fingerprint, including
+by detecting invented citations. But the result that should shape the field is
+negative: <strong>retraction-based benchmarks cannot certify their negatives</strong>, so
+headline detection scores — ours included — overstate deployment performance. The
+next step is a label-safe negative set (adjudicated clean papers, or
+prospective-then-confirmed cohorts) and a full-corpus run; the harness to do both is
+released here.</p>
+<hr />
+<h2>Reproducibility</h2>
+<p>All code, data builders, run artifacts, and the scorer are in <code>benchmark/</code>. See
+<code>benchmark/README.md</code>. The Retraction Watch snapshot is CC0; PMC texts are
+open-access. <code>python3 scoring/score.py --labels sets/labeled.jsonl --run ...</code>
+regenerates every metric in §5.1.</p>
+<p><em>Artifact and correspondence: gunting-paper-audit.</em></p></body></html>

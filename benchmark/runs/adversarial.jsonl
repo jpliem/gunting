@@ -1,0 +1,3 @@
+{"id": "ADV1", "score": 95, "verdict": "likely_fraud", "label": 1, "note": "fabricated ML (BadScientist-style)", "config": "gunting_web"}
+{"id": "ADV2", "score": 82, "verdict": "likely_fraud", "label": 1, "note": "fabricated biomed ceRNA", "config": "gunting_web"}
+{"id": "ADV_CTRL", "score": 5, "verdict": "clean", "label": 0, "note": "honest synthetic ML control", "config": "gunting_web"}

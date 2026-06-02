@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+# large CC0 snapshot — regenerate via curl (see README); keep repo lean
+data/retraction_watch.csv
+# fetched OA full texts (regenerate via harness/fetch_text.py)
+runs/_text/
+# scratch id-resolution caches
+sets/_*.json
