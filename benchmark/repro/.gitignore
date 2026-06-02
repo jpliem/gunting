@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+# blinded paper-text copies (regenerate: python3 anonymize.py)
+blind/
+# scratch
+_t*/

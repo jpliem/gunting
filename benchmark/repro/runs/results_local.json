@@ -1,0 +1,338 @@
+{
+  "local_gunting": {
+    "n": 14,
+    "n_pos": 6,
+    "n_neg": 8,
+    "missing_ids": [],
+    "auc": 0.2917,
+    "auc_ci95": [
+      0.0625,
+      0.5714
+    ],
+    "thresholds": {
+      "40": {
+        "threshold": 40,
+        "tp": 6,
+        "fp": 8,
+        "tn": 0,
+        "fn": 0,
+        "precision": 0.4286,
+        "recall": 1.0,
+        "specificity": 0.0,
+        "f1": 0.6,
+        "accuracy": 0.4286,
+        "f1_ci95": [
+          0.25,
+          0.8333
+        ]
+      },
+      "70": {
+        "threshold": 70,
+        "tp": 6,
+        "fp": 8,
+        "tn": 0,
+        "fn": 0,
+        "precision": 0.4286,
+        "recall": 1.0,
+        "specificity": 0.0,
+        "f1": 0.6,
+        "accuracy": 0.4286,
+        "f1_ci95": [
+          0.25,
+          0.8333
+        ]
+      }
+    },
+    "ece": 0.4286,
+    "reliability": [
+      {
+        "bin": 0,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 1,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 2,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 3,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 4,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 5,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 6,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 7,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 8,
+        "lo": 0.8,
+        "hi": 0.9,
+        "n": 6,
+        "conf": 0.8,
+        "acc": 0.667
+      },
+      {
+        "bin": 9,
+        "lo": 0.9,
+        "hi": 1.0,
+        "n": 8,
+        "conf": 0.9,
+        "acc": 0.25
+      }
+    ]
+  },
+  "local_vanilla": {
+    "n": 14,
+    "n_pos": 6,
+    "n_neg": 8,
+    "missing_ids": [],
+    "auc": 0.4271,
+    "auc_ci95": [
+      0.1515,
+      0.7333
+    ],
+    "thresholds": {
+      "40": {
+        "threshold": 40,
+        "tp": 6,
+        "fp": 8,
+        "tn": 0,
+        "fn": 0,
+        "precision": 0.4286,
+        "recall": 1.0,
+        "specificity": 0.0,
+        "f1": 0.6,
+        "accuracy": 0.4286,
+        "f1_ci95": [
+          0.25,
+          0.8333
+        ]
+      },
+      "70": {
+        "threshold": 70,
+        "tp": 6,
+        "fp": 7,
+        "tn": 1,
+        "fn": 0,
+        "precision": 0.4615,
+        "recall": 1.0,
+        "specificity": 0.125,
+        "f1": 0.6316,
+        "accuracy": 0.5,
+        "f1_ci95": [
+          0.3529,
+          0.8571
+        ]
+      }
+    },
+    "ece": 0.4107,
+    "reliability": [
+      {
+        "bin": 0,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 1,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 2,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 3,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 4,
+        "lo": 0.4,
+        "hi": 0.5,
+        "n": 1,
+        "conf": 0.45,
+        "acc": 0.0
+      },
+      {
+        "bin": 5,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 6,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 7,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 8,
+        "lo": 0.8,
+        "hi": 0.9,
+        "n": 9,
+        "conf": 0.844,
+        "acc": 0.556
+      },
+      {
+        "bin": 9,
+        "lo": 0.9,
+        "hi": 1.0,
+        "n": 4,
+        "conf": 0.925,
+        "acc": 0.25
+      }
+    ]
+  },
+  "fingerprint": {
+    "n": 14,
+    "n_pos": 6,
+    "n_neg": 8,
+    "missing_ids": [],
+    "auc": 0.5,
+    "auc_ci95": [
+      0.5,
+      0.5
+    ],
+    "thresholds": {
+      "40": {
+        "threshold": 40,
+        "tp": 0,
+        "fp": 0,
+        "tn": 8,
+        "fn": 6,
+        "precision": 0.0,
+        "recall": 0.0,
+        "specificity": 1.0,
+        "f1": 0.0,
+        "accuracy": 0.5714,
+        "f1_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "70": {
+        "threshold": 70,
+        "tp": 0,
+        "fp": 0,
+        "tn": 8,
+        "fn": 6,
+        "precision": 0.0,
+        "recall": 0.0,
+        "specificity": 1.0,
+        "f1": 0.0,
+        "accuracy": 0.5714,
+        "f1_ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "ece": 0.4286,
+    "reliability": [
+      {
+        "bin": 0,
+        "lo": 0.0,
+        "hi": 0.1,
+        "n": 14,
+        "conf": 0.0,
+        "acc": 0.429
+      },
+      {
+        "bin": 1,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 2,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 3,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 4,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 5,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 6,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 7,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 8,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      },
+      {
+        "bin": 9,
+        "n": 0,
+        "conf": null,
+        "acc": null
+      }
+    ]
+  }
+}
