@@ -30,6 +30,9 @@ flags 5/7 as suspicious — these are either false positives or *undetected mill
 and "non-retracted" is not a safe negative. We additionally show, against freshly
 **LLM-generated** fabricated papers (the "BadScientist" threat), that the auditor
 scores fabrications 82–95/100 while clearing an honest synthetic control at 5/100.
+An **independent, offline, blinded replication** with a non-Claude model (Qwen3.6-35B)
+reproduces the separation (holistic AUC 0.98) while a 3B model cannot (AUC 0.29) —
+ruling out trivial label leakage and showing detection is capability-gated (§7).
 We release the harness, dataset builder, scorer, and all run artifacts. **Headline
 numbers (AUC = 1.0) reflect an easy negative class and a small pilot and should not
 be read as deployment performance**; the contribution is the method, the honest
@@ -293,7 +296,39 @@ cross-system numbers mean anything.
 
 ---
 
-## 7. Limitations (read before citing any number)
+## 7. Independent replication (offline, non-Claude)
+
+A fair objection to §5: the auditor was Claude, run in sessions that knew the dataset
+was retraction-derived (and the same model family generated the §5.5 adversarial set).
+Could the separation be a Claude artifact or trivial label leakage in the texts? We
+re-ran the core benchmark under strict isolation: papers **anonymized** to opaque ids
+with labels hidden; auditor = a **different, fully offline** model that *cannot* query
+Retraction Watch or anything else; orchestration mechanical; `overall` recomputed in
+Python from the model's dimension scores. Two prompts (decomposed vs holistic), same
+scorer/labels/thresholds.
+
+| Auditor (offline, blinded) | decomposed AUC | holistic AUC |
+|---|---|---|
+| Qwen2.5-3B-Instruct (local) | 0.29 | 0.43 |
+| **Qwen3.6-35B-A3B (independent server)** | **0.74** | **0.98** |
+| Claude Opus 4.x (§5, for reference) | 1.00 | 1.00 |
+| fingerprint (model-free) | — | 0.50 |
+
+Three results. (1) **The finding replicates without Claude and without any web
+access**: an independent offline model separates mills from controls at holistic
+AUC 0.98 — it is not a Claude artifact and not web leakage. (2) **No trivial label
+signal exists in the texts**: the 3B model cannot separate the classes at all
+(AUC 0.29, rating everything 80–90); a cheap give-away would let even it win. (3)
+**Detection is capability-gated, and decomposition is capability-sensitive** — on the
+35B, the 9-dimension rubric *hurts* (0.74 vs 0.98 holistic): per-dimension noise +
+weighted-mean dilution + one control false-positive (a Genome Biology paper drew a
+spurious dimension spike to 85). On Claude the two are equal (1.0); on weaker models a
+holistic prompt is safer. The decomposition's payoff is explainability, not robustness,
+and it requires a strong base model. (Reasoning models also need generous output
+budgets: one Qwen3.6 audit initially scored 0 from a truncated JSON, 85 on re-run.)
+Harness and artifacts: `benchmark/repro/`.
+
+## 8. Limitations (read before citing any number)
 
 - **Pilot size.** n = 14 (6/8). CIs are wide where they matter (T70 F1 CI for
   `gunting_web` is [0.0, 0.67]). The full-corpus run (harness provided) is future work.
@@ -304,7 +339,8 @@ cross-system numbers mean anything.
 - **Single model, dual role.** The same model family powers `gunting` *and* generated
   the adversarial set — the adversarial result shows Claude can catch Claude-written
   fraud, not that it generalizes to all generators or that an adversary optimizing
-  against `gunting` could not evade it.
+  against `gunting` could not evade it. (§7 partially addresses the auditor side via an
+  independent non-Claude replication; the generator side remains single-family.)
 - **Residual leakage risk.** Two web-enabled agents reported incidentally seeing a
   retraction mention and stated they ignored it per instructions; we cannot fully
   guarantee no influence. Sanitization + instruction are mitigations, not proofs.
@@ -315,7 +351,7 @@ cross-system numbers mean anything.
 
 ---
 
-## 8. Conclusion
+## 9. Conclusion
 
 On fluent modern paper mills, **reasoning-based auditing decisively outperforms
 surface fingerprinting** (AUC 1.00 vs 0.44), and a decomposed, web-grounded auditor

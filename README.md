@@ -85,6 +85,12 @@ synthetic control (5/100). The honest caveat: AUC = 1.0 reflects an *easy* negat
 small pilot; the open problem is that **"non-retracted" is not a safe negative label** (paper §5.4).
 The harness scales to the full corpus unchanged.
 
+**Independent replication** ([`benchmark/repro/`](benchmark/repro/)): re-ran the benchmark with a
+**different, offline, blinded** model (no Claude, no internet, anonymized papers) to rule out leakage.
+A non-Claude **Qwen3.6-35B** reproduces the separation (**holistic AUC 0.98**); a **3B** model cannot
+(AUC 0.29) — proving the texts carry no trivial give-away and that detection is **capability-gated**.
+Decomposition helps strong models, hurts weaker ones vs a holistic prompt. Details: `benchmark/repro/RESULTS.md`.
+
 ## Requirements
 
 - PDF text extractor: **poppler** (`pdftotext`, `pdfinfo`) preferred, or `pip install pdfplumber`.

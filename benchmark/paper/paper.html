@@ -1,33 +1,21 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-@page { size: A4; margin: 20mm 18mm 22mm 18mm;
-  @bottom-center { content: counter(page) " / " counter(pages); font-size:8.5pt; color:#888; } }
-* { box-sizing: border-box; }
-body { font-family: "Charter","Georgia","Times New Roman",serif; font-size:9.6pt; line-height:1.46;
-  color:#161616; text-align:justify; hyphens:auto; }
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page { size: A4; margin: 20mm 18mm 22mm 18mm; @bottom-center { content: counter(page) " / " counter(pages); font-size:8.5pt; color:#888; } }
+body { font-family:"Charter","Georgia","Times New Roman",serif; font-size:9.6pt; line-height:1.46; color:#161616; text-align:justify; hyphens:auto; }
 h1 { font-size:17pt; line-height:1.2; text-align:left; margin:0 0 2pt; font-family:"Helvetica Neue",Arial,sans-serif; }
-h2 { font-size:11.5pt; margin:15pt 0 4pt; border-bottom:1.2pt solid #222; padding-bottom:2pt;
-  font-family:"Helvetica Neue",Arial,sans-serif; }
+h2 { font-size:11.5pt; margin:15pt 0 4pt; border-bottom:1.2pt solid #222; padding-bottom:2pt; font-family:"Helvetica Neue",Arial,sans-serif; }
 h3 { font-size:10pt; margin:10pt 0 3pt; font-family:"Helvetica Neue",Arial,sans-serif; color:#222; }
-p { margin:0 0 6pt; }
-strong { color:#000; }
-em { color:#333; }
+p { margin:0 0 6pt; } strong { color:#000; } em { color:#333; }
 code { font-family:"SF Mono","Menlo",monospace; font-size:8.4pt; background:#f3f3f3; padding:0.5pt 2.5pt; border-radius:2pt; }
-pre { background:#f6f6f6; border:0.5pt solid #ddd; border-radius:3pt; padding:7pt 9pt; font-size:8.2pt;
-  line-height:1.34; overflow:hidden; white-space:pre-wrap; }
+pre { background:#f6f6f6; border:0.5pt solid #ddd; border-radius:3pt; padding:7pt 9pt; font-size:8.2pt; line-height:1.34; white-space:pre-wrap; }
 pre code { background:none; padding:0; }
 table { border-collapse:collapse; width:100%; margin:7pt 0 10pt; font-size:8.6pt; }
 th,td { border:0.5pt solid #c4c4c4; padding:3pt 6pt; text-align:left; vertical-align:top; }
 th { background:#ededed; font-family:"Helvetica Neue",Arial,sans-serif; font-weight:600; }
 tr:nth-child(even) td { background:#fafafa; }
 hr { border:none; border-top:0.5pt solid #ccc; margin:12pt 0; }
-blockquote { margin:7pt 0; padding:5pt 11pt; border-left:2.5pt solid #888; background:#f7f7f7;
-  color:#333; font-size:9.2pt; }
+blockquote { margin:7pt 0; padding:5pt 11pt; border-left:2.5pt solid #888; background:#f7f7f7; color:#333; font-size:9.2pt; }
 a { color:#1a4d8f; text-decoration:none; }
-h2:first-of-type, h1 { page-break-after:avoid; }
-table, pre, blockquote { page-break-inside:avoid; }
-h2,h3 { page-break-after:avoid; }
-</style></head>
-<body><h1>Reasoning Auditors Beat Fingerprints but Inherit the Negative-Class Problem: A Pilot Benchmark for LLM Paper-Mill Detection</h1>
+table,pre,blockquote { page-break-inside:avoid; } h2,h3 { page-break-after:avoid; }
+</style></head><body><h1>Reasoning Auditors Beat Fingerprints but Inherit the Negative-Class Problem: A Pilot Benchmark for LLM Paper-Mill Detection</h1>
 <p><strong>Working paper / pilot study — v0.1, June 2026</strong></p>
 <p><em>Artifact: <code>gunting</code>, a 9-dimension multi-agent paper-fraud auditor, with a fully reproducible benchmark harness built on the Retraction Watch database and PubMed Central open-access full text.</em></p>
 <hr />
@@ -54,6 +42,9 @@ flags 5/7 as suspicious — these are either false positives or <em>undetected m
 and "non-retracted" is not a safe negative. We additionally show, against freshly
 <strong>LLM-generated</strong> fabricated papers (the "BadScientist" threat), that the auditor
 scores fabrications 82–95/100 while clearing an honest synthetic control at 5/100.
+An <strong>independent, offline, blinded replication</strong> with a non-Claude model (Qwen3.6-35B)
+reproduces the separation (holistic AUC 0.98) while a 3B model cannot (AUC 0.29) —
+ruling out trivial label leakage and showing detection is capability-gated (§7).
 We release the harness, dataset builder, scorer, and all run artifacts. <strong>Headline
 numbers (AUC = 1.0) reflect an easy negative class and a small pilot and should not
 be read as deployment performance</strong>; the contribution is the method, the honest
@@ -458,7 +449,60 @@ with status-lookup forbidden</strong>, not retraction prediction. The honest tak
 choice and prevalence</strong>, and that the field needs shared, label-safe negatives before
 cross-system numbers mean anything.</p>
 <hr />
-<h2>7. Limitations (read before citing any number)</h2>
+<h2>7. Independent replication (offline, non-Claude)</h2>
+<p>A fair objection to §5: the auditor was Claude, run in sessions that knew the dataset
+was retraction-derived (and the same model family generated the §5.5 adversarial set).
+Could the separation be a Claude artifact or trivial label leakage in the texts? We
+re-ran the core benchmark under strict isolation: papers <strong>anonymized</strong> to opaque ids
+with labels hidden; auditor = a <strong>different, fully offline</strong> model that <em>cannot</em> query
+Retraction Watch or anything else; orchestration mechanical; <code>overall</code> recomputed in
+Python from the model's dimension scores. Two prompts (decomposed vs holistic), same
+scorer/labels/thresholds.</p>
+<table>
+<thead>
+<tr>
+<th>Auditor (offline, blinded)</th>
+<th>decomposed AUC</th>
+<th>holistic AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Qwen2.5-3B-Instruct (local)</td>
+<td>0.29</td>
+<td>0.43</td>
+</tr>
+<tr>
+<td><strong>Qwen3.6-35B-A3B (independent server)</strong></td>
+<td><strong>0.74</strong></td>
+<td><strong>0.98</strong></td>
+</tr>
+<tr>
+<td>Claude Opus 4.x (§5, for reference)</td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>fingerprint (model-free)</td>
+<td>—</td>
+<td>0.50</td>
+</tr>
+</tbody>
+</table>
+<p>Three results. (1) <strong>The finding replicates without Claude and without any web
+access</strong>: an independent offline model separates mills from controls at holistic
+AUC 0.98 — it is not a Claude artifact and not web leakage. (2) <strong>No trivial label
+signal exists in the texts</strong>: the 3B model cannot separate the classes at all
+(AUC 0.29, rating everything 80–90); a cheap give-away would let even it win. (3)
+<strong>Detection is capability-gated, and decomposition is capability-sensitive</strong> — on the
+35B, the 9-dimension rubric <em>hurts</em> (0.74 vs 0.98 holistic): per-dimension noise +
+weighted-mean dilution + one control false-positive (a Genome Biology paper drew a
+spurious dimension spike to 85). On Claude the two are equal (1.0); on weaker models a
+holistic prompt is safer. The decomposition's payoff is explainability, not robustness,
+and it requires a strong base model. (Reasoning models also need generous output
+budgets: one Qwen3.6 audit initially scored 0 from a truncated JSON, 85 on re-run.)
+Harness and artifacts: <code>benchmark/repro/</code>.</p>
+<h2>8. Limitations (read before citing any number)</h2>
 <ul>
 <li><strong>Pilot size.</strong> n = 14 (6/8). CIs are wide where they matter (T70 F1 CI for
   <code>gunting_web</code> is [0.0, 0.67]). The full-corpus run (harness provided) is future work.</li>
@@ -469,7 +513,8 @@ cross-system numbers mean anything.</p>
 <li><strong>Single model, dual role.</strong> The same model family powers <code>gunting</code> <em>and</em> generated
   the adversarial set — the adversarial result shows Claude can catch Claude-written
   fraud, not that it generalizes to all generators or that an adversary optimizing
-  against <code>gunting</code> could not evade it.</li>
+  against <code>gunting</code> could not evade it. (§7 partially addresses the auditor side via an
+  independent non-Claude replication; the generator side remains single-family.)</li>
 <li><strong>Residual leakage risk.</strong> Two web-enabled agents reported incidentally seeing a
   retraction mention and stated they ignored it per instructions; we cannot fully
   guarantee no influence. Sanitization + instruction are mitigations, not proofs.</li>
@@ -479,7 +524,7 @@ cross-system numbers mean anything.</p>
   reproduces the <em>protocol</em> and data, not bit-identical LLM outputs.</li>
 </ul>
 <hr />
-<h2>8. Conclusion</h2>
+<h2>9. Conclusion</h2>
 <p>On fluent modern paper mills, <strong>reasoning-based auditing decisively outperforms
 surface fingerprinting</strong> (AUC 1.00 vs 0.44), and a decomposed, web-grounded auditor
 adds <strong>located, ground-truth-aligned explanations</strong> and <strong>specificity on hard
